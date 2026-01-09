@@ -1,5 +1,6 @@
 name: Build and Send to Telegram
-on: [push]
+on: [push, workflow_dispatch] # أضفت خيار التشغيل اليدوي أيضاً
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -17,14 +18,13 @@ jobs:
       - name: Build APK
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleDebug --no-daemon
+          # تشغيل البناء مع تعطيل المهام غير الضرورية لتوفير الوقت والذاكرة
+          ./gradlew :app:assembleDebug --no-daemon -x test -x lint
 
       - name: Send to Telegram
+        if: success()
         run: |
-          # البحث عن ملف الـ APK الناتج
           APK_PATH=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
-          
-          # الإرسال باستخدام الأسرار (Secrets) التي أضفتها مسبقاً
           curl -F document=@"$APK_PATH" \
           "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument?chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&caption=✅ تم بناء لوحة المفاتيح بنجاح!"
-
+          
