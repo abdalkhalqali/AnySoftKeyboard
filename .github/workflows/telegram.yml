@@ -1,0 +1,30 @@
+name: Build and Send to Telegram
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+
+      - name: Build APK
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --no-daemon
+
+      - name: Send to Telegram
+        run: |
+          # البحث عن ملف الـ APK الناتج
+          APK_PATH=$(find app/build/outputs/apk/debug/ -name "*.apk" | head -n 1)
+          
+          # الإرسال باستخدام الأسرار (Secrets) التي أضفتها مسبقاً
+          curl -F document=@"$APK_PATH" \
+          "https://api.telegram.org/bot${{ secrets.TELEGRAM_TOKEN }}/sendDocument?chat_id=${{ secrets.TELEGRAM_CHAT_ID }}&caption=✅ تم بناء لوحة المفاتيح بنجاح!"
+
